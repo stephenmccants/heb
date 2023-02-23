@@ -1,14 +1,11 @@
 package com.mccants.heb.checkout.service;
 
-import com.mccants.heb.checkout.dto.Item;
 import com.mccants.heb.util.MoneyUtil;
 import org.javamoney.moneta.Money;
-import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import javax.money.Monetary;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Provides business logic related to calculating sales taxes.
@@ -23,15 +20,13 @@ public class SalesTaxService {
     public final double TAX_RATE = 0.0825;
 
     /**
-     * Goes through a cart and figures out what the sales tax should be
-     * @param items a list of items that may or may not be taxable.
-     * @return the tax amount rounded to the nearest cent
+     * Determines the amount of tax on the amount of money passed in
+     * @param taxable the amount of money that is subject to sales tax
+     * @return the sales tax amount (rounded).
      */
-    public @NonNull Money calculateSalesTax(@NonNull List<Item> items) {
-        // First filter out the non-taxable items, then get the price and multiply by the tax rate and return the sum of the results
-        Optional<Money> taxAmount =  items.stream().filter(Item::isTaxable)
-                .map(Item::getPrice).map((price) -> price.multiply(TAX_RATE))
-                .reduce(Money::add);
-        return taxAmount.orElse(MoneyUtil.ZERO).with(Monetary.getDefaultRounding()); // Round off the fractional cents
+    public Money calculateSalesTax(@Nullable Money taxable) {
+        if(taxable == null)
+            return MoneyUtil.ZERO;
+        return taxable.multiply(TAX_RATE).with(Monetary.getDefaultRounding());
     }
 }

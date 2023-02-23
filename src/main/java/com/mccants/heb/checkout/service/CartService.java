@@ -16,9 +16,18 @@ public class CartService {
     /**
      * Totals up all the items in a cart
      * @param cart the cart in question
-     * @return the total of all the items in the cart
+     * @return the total price of all the items in the cart
      */
     public Optional<Money> getTotal(Cart cart) {
         return cart.items().stream().map(Item::getPrice).reduce(Money::add);
+    }
+
+    /**
+     * Totals up all the items in the cart that are taxable
+     * @param cart the cart in question
+     * @return the total price of all taxable items
+     */
+    public Optional<Money> getTaxableTotal(Cart cart) {
+        return cart.items().stream().filter(Item::isTaxable).map(Item::getPrice).reduce(Money::add);
     }
 }

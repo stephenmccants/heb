@@ -7,10 +7,7 @@ import com.mccants.heb.checkout.service.SalesTaxService;
 import com.mccants.heb.util.MoneyUtil;
 import org.javamoney.moneta.Money;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Controller for methods providing receipt information.
@@ -33,18 +30,23 @@ public class ReceiptController {
     public Receipt total(@RequestBody Cart cart) {
         // Go through the cart and create the grand total
         Money grandTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
-        return new Receipt(null, null, grandTotal);
+        return new Receipt(null, null, null, grandTotal);
     }
 
     /**
      * Feature 2 - Takes a cart, calculates the taxes and returns a subTotal, taxTotal and grandTotal in a reciept
      * @param cart the Cart whose totals we will calculate and return in the Receipt
+     * @param showTaxableSubTotal true if you want to show the taxable subtotal.  False (or null) if you want to hide it.
      * @return a Receipt containing subTotal, taxTotal and grandTotal
      */
     @PutMapping(path="/tax")
-    public Receipt tax(@RequestBody Cart cart) {
+    public Receipt tax(@RequestBody Cart cart, @RequestParam(required = false) Boolean showTaxableSubTotal) {
         Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
-        Money taxTotal = salesTaxService.calculateSalesTax(cart.items());
-        return new Receipt(subTotal, taxTotal, subTotal.add(taxTotal));
+        Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO);
+        Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
+        if(showTaxableSubTotal != null && showTaxableSubTotal)
+            return new Receipt(subTotal, taxableSubTotal, taxTotal, subTotal.add(taxTotal));
+        else
+            return new Receipt(subTotal, null, taxTotal, subTotal.add(taxTotal));
     }
 }

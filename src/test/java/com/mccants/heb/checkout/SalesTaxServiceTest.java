@@ -1,11 +1,8 @@
 package com.mccants.heb.checkout;
 
-import com.mccants.heb.checkout.dto.Item;
 import com.mccants.heb.checkout.service.SalesTaxService;
 import com.mccants.heb.util.MoneyUtil;
-import org.assertj.core.util.Lists;
 import org.javamoney.moneta.Money;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,96 +19,58 @@ public class SalesTaxServiceTest {
     // Under test
     private SalesTaxService salesTaxService;
 
-    private Item noRoundingItem;
-    private Item roundDownItem;
-    private Item roundUpItem;
-    private Item noTaxItem;
-
-    @BeforeAll
-    public static void setupUp() {
-    }
-
     @BeforeEach
     public void beforeEach() {
         salesTaxService = new SalesTaxService();
-        // Test Data Objects
-        noRoundingItem = new Item("noRounding", 1, true, false);
-        noRoundingItem.setPrice(MoneyUtil.createUSD(100));
-        roundDownItem = new Item("noRounding", 2, true, false);
-        roundDownItem.setPrice(MoneyUtil.createUSD(1));
-        roundUpItem = new Item("noRounding", 3, true, false);
-        roundUpItem.setPrice(MoneyUtil.createUSD(3));
-        noTaxItem = new Item("noRounding", 4, false, false);
-        noTaxItem.setPrice(MoneyUtil.createUSD(100));
     }
 
     /**
-     * Calculate sales tax with no items
+     * Calculate sales tax with a null taxable amount
      */
     @Test
-    public void testCalculateSalesTax_NoItems() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list());
+    public void testCalculateSalesTax_NullTaxable() {
+        Money tax = salesTaxService.calculateSalesTax(null);
         assertThat(tax, is(notNullValue()));
         assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0)));
     }
 
     /**
-     * Calculate sales tax with one item, no rounding
+     * Calculate sales tax with no taxable amount
      */
     @Test
-    public void testCalculateSalesTax_OneItem_NoRounding() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(noRoundingItem));
+    public void testCalculateSalesTax_ZeroTaxable() {
+        Money tax = salesTaxService.calculateSalesTax(MoneyUtil.ZERO);
+        assertThat(tax, is(notNullValue()));
+        assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0)));
+    }
+
+    /**
+     * Calculate sales tax with no rounding
+     */
+    @Test
+    public void testCalculateSalesTax_NoRounding() {
+        Money tax = salesTaxService.calculateSalesTax(MoneyUtil.createUSD(100));
         assertThat(tax, is(notNullValue()));
         assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(8.25)));
     }
 
     /**
-     * Calculate sales tax with three items, no rounding
+     * Calculate sales tax rounding down
      */
     @Test
-    public void testCalculateSalesTax_ThreeItems_NoRounding() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(noRoundingItem, noRoundingItem, noRoundingItem));
-        assertThat(tax, is(notNullValue()));
-        assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(24.75)));
-    }
-
-    /**
-     * Calculate sales tax with one item, rounding down
-     */
-    @Test
-    public void testCalculateSalesTax_OneItem_RoundDown() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(roundDownItem));
+    public void testCalculateSalesTax_RoundDown() {
+        Money tax = salesTaxService.calculateSalesTax(MoneyUtil.createUSD(1));
         assertThat(tax, is(notNullValue()));
         assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0.08)));
     }
 
     /**
-     * Calculate sales tax with one item, rounding up
+     * Calculate sales tax rounding up
      */
     @Test
-    public void testCalculateSalesTax_OneItem_RoundUp() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(roundUpItem));
+    public void testCalculateSalesTax_RoundUp() {
+        Money tax = salesTaxService.calculateSalesTax(MoneyUtil.createUSD(3));
         assertThat(tax, is(notNullValue()));
         assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0.25)));
-    }
-
-    /**
-     * Make sure we don't apply taxes to a tax free item
-     */
-    @Test
-    public void testCalculateSalesTax_OneItem_NoTax() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(noTaxItem));
-        assertThat(tax, is(notNullValue()));
-        assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0)));
-    }
-
-    /**
-     * Make sure we don't apply taxes to tax free items
-     */
-    @Test
-    public void testCalculateSalesTax_ThreeItems_NoTax() {
-        Money tax = salesTaxService.calculateSalesTax(Lists.list(noTaxItem, noTaxItem, noTaxItem));
-        assertThat(tax, is(notNullValue()));
-        assertThat(tax.getNumberStripped(), is(BigDecimal.valueOf(0)));
     }
 }

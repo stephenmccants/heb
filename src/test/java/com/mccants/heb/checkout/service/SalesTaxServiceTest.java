@@ -1,6 +1,5 @@
-package com.mccants.heb.checkout;
+package com.mccants.heb.checkout.service;
 
-import com.mccants.heb.checkout.service.SalesTaxService;
 import com.mccants.heb.util.MoneyUtil;
 import org.javamoney.moneta.Money;
 import org.junit.jupiter.api.BeforeEach;

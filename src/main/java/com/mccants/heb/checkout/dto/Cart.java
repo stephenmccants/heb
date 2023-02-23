@@ -5,5 +5,6 @@ import java.util.List;
 /**
  * This is the "Cart" that the Receipt controller expects to receive in JSON format.
  * @param items items in the cart
+ * @param coupons the coupons in the cart
  */
-public record Cart(List<Item> items) { }
+public record Cart(List<Item> items, List<Coupon> coupons) { }

@@ -26,11 +26,11 @@ public class ReceiptController {
      * @param cart the Cart whose grand total we will calculate and return in the Receipt
      * @return a Receipt object with the grand total for the cart.
      */
-    @PutMapping(path="/total")
+    @PostMapping(path="/total")
     public Receipt total(@RequestBody Cart cart) {
         // Go through the cart and create the grand total
         Money grandTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
-        return new Receipt(null, null, null, grandTotal);
+        return new Receipt(null, null, null, null,null, grandTotal);
     }
 
     /**
@@ -39,14 +39,24 @@ public class ReceiptController {
      * @param showTaxableSubTotal true if you want to show the taxable subtotal.  False (or null) if you want to hide it.
      * @return a Receipt containing subTotal, taxTotal and grandTotal
      */
-    @PutMapping(path="/tax")
+    @PostMapping(path="/tax")
     public Receipt tax(@RequestBody Cart cart, @RequestParam(required = false) Boolean showTaxableSubTotal) {
         Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
         Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO);
         Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
         if(showTaxableSubTotal != null && showTaxableSubTotal)
-            return new Receipt(subTotal, taxableSubTotal, taxTotal, subTotal.add(taxTotal));
+            return new Receipt(subTotal, null, null, taxableSubTotal, taxTotal, subTotal.add(taxTotal));
         else
-            return new Receipt(subTotal, null, taxTotal, subTotal.add(taxTotal));
+            return new Receipt(subTotal, null, null, null, taxTotal, subTotal.add(taxTotal));
+    }
+
+    @PostMapping(path="/totalWithCoupons")
+    public Receipt coupons(@RequestBody Cart cart) {
+        Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
+        CartService.DiscountedTotals discountedTotals = cartService.applyCoupons(cart);
+        Money discountTotal = discountedTotals.discountTotal();
+        Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO).subtract(discountedTotals.taxableDiscount());
+        Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
+        return new Receipt(subTotal, discountTotal, subTotal.subtract(discountTotal), taxableSubTotal, taxTotal, subTotal.add(taxTotal));
     }
 }

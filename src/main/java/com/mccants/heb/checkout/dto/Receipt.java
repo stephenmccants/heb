@@ -13,5 +13,7 @@ import org.javamoney.moneta.Money;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Receipt(
+        @JsonDeserialize(converter = NumberToMoneyConverter.class) @JsonSerialize(converter = MoneyToNumberConverter.class) Money subTotal,
+        @JsonDeserialize(converter = NumberToMoneyConverter.class) @JsonSerialize(converter = MoneyToNumberConverter.class) Money taxTotal,
         @JsonDeserialize(converter = NumberToMoneyConverter.class) @JsonSerialize(converter = MoneyToNumberConverter.class) Money grandTotal) {
 }

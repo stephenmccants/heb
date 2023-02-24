@@ -77,7 +77,52 @@ public class ReceiptControllerTest {
                         }
                       ]
                     }""";
-
+    final static String cartThreeItemsTwoCoupons =
+            """
+                    {
+                      "items": [
+                        {
+                          "itemName": "H-E-B Two Bite Brownies",
+                          "sku": 85294241,
+                          "isTaxable": true,
+                          "ownBrand": true,
+                          "price": 3.61
+                        },
+                        {
+                          "itemName": "Halo Top Vanilla Bean Ice Cream",
+                          "sku": 95422042,
+                          "isTaxable": false,
+                          "ownBrand": false,
+                          "price": 3.31
+                        },
+                        {
+                          "itemName": "H-E-B Select Ingredients Creamy Creations Vanilla Bean Ice Cream",
+                          "sku": 64267055,
+                          "isTaxable": true,
+                          "ownBrand": true,
+                          "price": 9.83
+                        }
+                      ],
+                      "coupons": [
+                        {
+                          "couponName": "Coupon One",
+                          "appliedSku": 85294241,
+                          "discountPrice": 0.79
+                        },
+                        {
+                          "couponName": "Coupon Two - does not apply",
+                          "appliedSku": 30532705,
+                          "discountPrice": 1.83
+                        },
+                        {
+                          "couponName": "Coupon Three - ice cream!",
+                          "appliedSku": 95422042,
+                          "discountPrice": 5.00
+                        }
+                      ]
+                    }
+                    
+                    """;
 
     /**
      * Sets up the port for our test to run on
@@ -92,8 +137,8 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTotalOnlyReceipt_Blank() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body("").contentType(ContentType.JSON).put("/receipt/total")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body("").contentType(ContentType.JSON).post("/receipt/total")
                 .then().extract();
         // Verify that it is a 400 return code
         assertThat(extract.statusCode(), is(400)); // Bad Request
@@ -105,12 +150,14 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTotalOnlyReceipt_NoItems() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartEmpty).contentType(ContentType.JSON).put("/receipt/total")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartEmpty).contentType(ContentType.JSON).post("/receipt/total")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(0));
@@ -121,12 +168,14 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTotalOnlyReceipt_OneItem() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartOneItem).contentType(ContentType.JSON).put("/receipt/total")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartOneItem).contentType(ContentType.JSON).post("/receipt/total")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(3.6f));
@@ -137,12 +186,14 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTotalOnlyReceipt_ThreeItems() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartThreeItems).contentType(ContentType.JSON).put("/receipt/total")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartThreeItems).contentType(ContentType.JSON).post("/receipt/total")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(16.75f));
@@ -153,8 +204,8 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTaxOnlyReceipt_Blank() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body("").contentType(ContentType.JSON).put("/receipt/tax")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body("").contentType(ContentType.JSON).post("/receipt/tax")
                 .then().extract();
         // Verify that it is a 400 return code
         assertThat(extract.statusCode(), is(400)); // Bad Request
@@ -166,142 +217,156 @@ public class ReceiptControllerTest {
      */
     @Test
     public void testTaxOnlyReceipt_NoItems() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartEmpty).contentType(ContentType.JSON).put("/receipt/tax")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartEmpty).contentType(ContentType.JSON).post("/receipt/tax")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(0));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(0));
+    }
 
-        // Now explicitly without tax subTotal
-        extract = given().body(cartEmpty).contentType(ContentType.JSON).param("showTaxableSubTotal", "false").put("/receipt/tax")
-                .then().extract();
-        // Verify that it is a 200 return code
-        assertThat(extract.statusCode(), is(200));
-        assertThat(extract.body().jsonPath().get("subTotal"), is(0));
-        assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
-        assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
-        assertThat(extract.body().jsonPath().get("grandTotal"), is(0));
-
+    /**
+     * Test case showing Feature 3 does not explode if passed no items
+     */
+    @Test
+    public void testTaxOnlyReceiptWithSubTotal_NoItems() {
         // Now explicitly with tax subTotal
-        extract = given().body(cartEmpty).contentType(ContentType.JSON).param("showTaxableSubTotal", "true").put("/receipt/tax")
+        ExtractableResponse<Response> extract = given().body(cartEmpty).contentType(ContentType.JSON).post("/receipt/taxWithSubtotal")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(0));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(0));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(0));
     }
 
     /**
-     * Test case showing Feature 2 & 3 works correctly it passed one item
+     * Test case showing Feature 2 works correctly it passed one item
      */
     @Test
     public void testTaxOnlyReceipt_OneItem_NoTax() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartOneItem).contentType(ContentType.JSON).put("/receipt/tax")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartOneItem).contentType(ContentType.JSON).post("/receipt/tax")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(3.6f));
+    }
 
-        // Now explicitly without tax subTotal
-        extract = given().body(cartOneItem).contentType(ContentType.JSON).param("showTaxableSubTotal", "false").put("/receipt/tax")
-                .then().extract();
-        // Verify that it is a 200 return code
-        assertThat(extract.statusCode(), is(200));
-        assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
-        assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
-        assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
-        assertThat(extract.body().jsonPath().get("grandTotal"), is(3.6f));
-
+    /**
+     * Test case showing Feature 3 works correctly it passed one item
+     */
+    @Test
+    public void testTaxOnlyReceiptWithSubTotal_OneItem_NoTax() {
         // Now explicitly with tax subTotal
-        extract = given().body(cartOneItem).contentType(ContentType.JSON).param("showTaxableSubTotal", "true").put("/receipt/tax")
+        ExtractableResponse<Response> extract = given().body(cartOneItem).contentType(ContentType.JSON).post("/receipt/taxWithSubtotal")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(0));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(3.6f));
     }
 
     /**
-     * Test case showing Feature 2 & 3works correctly it passed one item
+     * Test case showing Feature 2 works correctly it passed one item
      */
     @Test
     public void testTaxOnlyReceipt_OneItem() {
-        // Make the put call
-        ExtractableResponse<Response> extract = given().body(cartOneTaxableItem).contentType(ContentType.JSON).put("/receipt/tax")
+        // Make the post call
+        ExtractableResponse<Response> extract = given().body(cartOneTaxableItem).contentType(ContentType.JSON).post("/receipt/tax")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0.3f));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(3.9f));
+    }
 
-        // Now explicitly without tax subTotal
-        extract = given().body(cartOneTaxableItem).contentType(ContentType.JSON).param("showTaxableSubTotal", "false").put("/receipt/tax")
-                .then().extract();
-        // Verify that it is a 200 return code
-        assertThat(extract.statusCode(), is(200));
-        assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
-        assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
-        assertThat(extract.body().jsonPath().get("taxTotal"), is(0.3f));
-        assertThat(extract.body().jsonPath().get("grandTotal"), is(3.9f));
-
+    /**
+     * Test case showing Feature 3 works correctly it passed one item
+     */
+    @Test
+    public void testTaxOnlyReceiptWithSubTotal_OneItem() {
         // Now explicitly with tax subTotal
-        extract = given().body(cartOneTaxableItem).contentType(ContentType.JSON).param("showTaxableSubTotal", "true").put("/receipt/tax")
+        ExtractableResponse<Response> extract = given().body(cartOneTaxableItem).contentType(ContentType.JSON).post("/receipt/taxWithSubtotal")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(3.6f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(3.6f));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(0.3f));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(3.9f));
     }
 
     /**
-     * Test case showing Feature 2 & 3 works correctly it passed three item
+     * Test case showing Feature 2 works correctly it passed three item
      */
     @Test
     public void testTaxOnlyReceipt_ThreeItems() {
-        // Make the put call - no tax subtotal
-        ExtractableResponse<Response> extract = given().body(cartThreeItems).contentType(ContentType.JSON).put("/receipt/tax")
+        // Make the post call - no tax subtotal
+        ExtractableResponse<Response> extract = given().body(cartThreeItems).contentType(ContentType.JSON).post("/receipt/tax")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(16.75f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(1.11f));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(17.86f));
+    }
 
-        // Now explicitly without tax subTotal
-        extract = given().body(cartThreeItems).contentType(ContentType.JSON).param("showTaxableSubTotal", "false").put("/receipt/tax")
-                .then().extract();
-        // Verify that it is a 200 return code
-        assertThat(extract.statusCode(), is(200));
-        assertThat(extract.body().jsonPath().get("subTotal"), is(16.75f));
-        assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(nullValue()));
-        assertThat(extract.body().jsonPath().get("taxTotal"), is(1.11f));
-        assertThat(extract.body().jsonPath().get("grandTotal"), is(17.86f));
-
+    /**
+     * Test case showing Feature 3 works correctly it passed three item
+     */
+    @Test
+    public void testTaxOnlyReceiptWithSubTotal_ThreeItems() {
         // Now explicitly with tax subTotal
-        extract = given().body(cartThreeItems).contentType(ContentType.JSON).param("showTaxableSubTotal", "true").put("/receipt/tax")
+        ExtractableResponse<Response> extract = given().body(cartThreeItems).contentType(ContentType.JSON).post("/receipt/taxWithSubtotal")
                 .then().extract();
         // Verify that it is a 200 return code
         assertThat(extract.statusCode(), is(200));
         assertThat(extract.body().jsonPath().get("subTotal"), is(16.75f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(nullValue()));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(nullValue()));
         assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(13.44f));
         assertThat(extract.body().jsonPath().get("taxTotal"), is(1.11f));
         assertThat(extract.body().jsonPath().get("grandTotal"), is(17.86f));
+    }
+
+    @Test
+    public void testTotalWithCoupons() {
+         ExtractableResponse<Response> extract = given().body(cartThreeItemsTwoCoupons).contentType(ContentType.JSON).post("/receipt/totalWithCoupons")
+                .then().extract();
+         // Verify that it is a 200 return code
+        assertThat(extract.statusCode(), is(200));
+        assertThat(extract.body().jsonPath().get("subTotal"), is(16.75f));
+        assertThat(extract.body().jsonPath().get("discountTotal"), is(4.10f));
+        assertThat(extract.body().jsonPath().get("discountedSubTotal"), is(12.65f));
+        assertThat(extract.body().jsonPath().get("taxableSubTotal"), is(12.65f));
+        assertThat(extract.body().jsonPath().get("taxTotal"), is(1.04f));
+        assertThat(extract.body().jsonPath().get("grandTotal"), is(13.69f));
     }
 }

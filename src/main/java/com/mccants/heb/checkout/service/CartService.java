@@ -37,6 +37,10 @@ public class CartService {
         // Go through all the coupons and apply them to each item in the cart.  Determine the discounted and taxable discounted subtotals
         Money discountTotal = MoneyUtil.ZERO;
         Money taxableDiscount = MoneyUtil.ZERO;
+        // Sanity checks
+        if (cart == null || cart.coupons() == null || cart.coupons().isEmpty() || cart.items() == null || cart.items().isEmpty())
+            return new DiscountedTotals(discountTotal, taxableDiscount);
+        // Go through one coupon at a time and apply it
         for(Coupon coupon : cart.coupons()) {
             // Apply this to all the items in the cart
             Optional<Money> couponDiscount = cart.items().stream().filter(item -> item.getSku() == coupon.getAppliedSku())

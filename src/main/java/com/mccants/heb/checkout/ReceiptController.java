@@ -34,29 +34,45 @@ public class ReceiptController {
     }
 
     /**
-     * Feature 2 - Takes a cart, calculates the taxes and returns a subTotal, taxTotal and grandTotal in a reciept
+     * Feature 2 - Takes a cart, calculates the taxes and returns a subTotal, taxTotal and grandTotal in a receipt
      * @param cart the Cart whose totals we will calculate and return in the Receipt
-     * @param showTaxableSubTotal true if you want to show the taxable subtotal.  False (or null) if you want to hide it.
      * @return a Receipt containing subTotal, taxTotal and grandTotal
      */
     @PostMapping(path="/tax")
-    public Receipt tax(@RequestBody Cart cart, @RequestParam(required = false) Boolean showTaxableSubTotal) {
+    public Receipt tax(@RequestBody Cart cart) {
         Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
         Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO);
         Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
-        if(showTaxableSubTotal != null && showTaxableSubTotal)
-            return new Receipt(subTotal, null, null, taxableSubTotal, taxTotal, subTotal.add(taxTotal));
-        else
-            return new Receipt(subTotal, null, null, null, taxTotal, subTotal.add(taxTotal));
+        return new Receipt(subTotal, null, null, null, taxTotal, subTotal.add(taxTotal));
     }
 
+    /**
+     * Feature 3 - Takes a cart, calculates the taxes and returns a subTotal, taxableSubTotal, taxTotal and grandTotal in a receipt
+     * @param cart the Cart whose totals we will calculate and return in the Receipt
+     * @return a Receipt containing subTotal, taxableSubTotal, taxTotal and grandTotal
+     */
+    @PostMapping(path="/taxWithSubtotal")
+    public Receipt taxWithSubTotal(@RequestBody Cart cart) {
+        Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
+        Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO);
+        Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
+        return new Receipt(subTotal, null, null, taxableSubTotal, taxTotal, subTotal.add(taxTotal));
+    }
+
+    /**
+     * Feature 4 - Takes a cart with optional coupons, calculates the taxes and returns a subTotal, discountTotal, discountedSubTotal,
+     * taxableSubTotal, taxTotal and grandTotal in a receipt
+     * @param cart the cart to handle.  May or may not have coupons
+     * @return a receipt containing thes ubTotal, discountTotal, discountedSubTotal, taxableSubTotal, taxTotal and grandTotal.
+     */
     @PostMapping(path="/totalWithCoupons")
     public Receipt coupons(@RequestBody Cart cart) {
         Money subTotal = cartService.getTotal(cart).orElse(MoneyUtil.ZERO);
         CartService.DiscountedTotals discountedTotals = cartService.applyCoupons(cart);
         Money discountTotal = discountedTotals.discountTotal();
+        Money discountedSubTotal = subTotal.subtract(discountTotal);
         Money taxableSubTotal = cartService.getTaxableTotal(cart).orElse(MoneyUtil.ZERO).subtract(discountedTotals.taxableDiscount());
         Money taxTotal = salesTaxService.calculateSalesTax(taxableSubTotal);
-        return new Receipt(subTotal, discountTotal, subTotal.subtract(discountTotal), taxableSubTotal, taxTotal, subTotal.add(taxTotal));
+        return new Receipt(subTotal, discountTotal, discountedSubTotal, taxableSubTotal, taxTotal, discountedSubTotal.add(taxTotal));
     }
 }
